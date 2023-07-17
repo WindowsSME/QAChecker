@@ -391,7 +391,6 @@ function Get-ComputerManufacturer {
     } catch {
         $manufacturer = $null
     }
-
     if ([string]::IsNullOrEmpty($manufacturer)) {
         try {
             $manufacturer = (Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer
@@ -399,9 +398,11 @@ function Get-ComputerManufacturer {
             $manufacturer = $null
         }
     }
-
     $output = if ([string]::IsNullOrEmpty($manufacturer)) {
         Write-Output "Manufacturer cannot be retrieved."
+    } elseif ($manufacturer -like "*asus*" -or $manufacturer -like "*acer*") {
+        Write-Output "Computer Manufacturer: $manufacturer"
+        Write-Output "BIOS Admin Password: PC Manufacturer Not Supported, Manual Capture Required"
     } else {
         Write-Output "Computer Manufacturer: $manufacturer"
     }
