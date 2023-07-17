@@ -1,7 +1,7 @@
 Machine QA Compliance using PowerShell
 (Windows PowerShell ISE)
 
-This document will allow you to easily check multiple compliance items on a machine before signing off deployment
+This script will allow you to easily check multiple compliance items on a machine before signing off deployment
 
 1. Login to the local machine using an adminstrator account
 2. Open Windows Powershell ISE as Administrator
