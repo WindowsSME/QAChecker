@@ -57,7 +57,7 @@ function Get-ComputerOUInfo {
         $distinguishedName = $adComputer.DistinguishedName
         $organizationalUnit = ($distinguishedName -split ",", 2)[1]
         $dateModified = $adComputer.Modified
-        Write-Output "Organizational Unit: $organizationalUnit | Modified: $dateModified"        
+        Write-Output "AD OU: $organizationalUnit | Modified: $dateModified"        
     } catch {
         Write-Error "Error: $_"
     }
