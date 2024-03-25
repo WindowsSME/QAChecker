@@ -24,6 +24,14 @@ function Get-ComputerOUInfo {
     [CmdletBinding()]
     param()
 
+    $RSATTool = "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0"
+    $capability = Get-WindowsCapability -Online | Where-Object {$_.Name -eq $RSATTool}
+
+    if ($capability.State -ne "Installed") {
+        Add-WindowsCapability -Online -Name "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0"
+        Write-Host "Capability installed successfully. Launching AD Object Mover Applet" -ForegroundColor Green
+    }
+
     $computerName = $env:COMPUTERNAME
 
     if (-not $computerName) {
@@ -51,9 +59,10 @@ function Get-ComputerOUInfo {
         $organizationalUnit = ($distinguishedName -split ",", 2)[1]
         Write-Output "Organizational Unit: $organizationalUnit"
     } catch {
-        Write-Error "Error: $_"
+        Write-Output "Error: $_"
     }
 }
+
 
 function Get-WindowsUpdateStatus {
     $featureStatus = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UpdatePolicy\Settings" -Name "PausedFeatureStatus").PausedFeatureStatus
