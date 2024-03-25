@@ -28,9 +28,7 @@ function Get-ComputerOUInfo {
     $capability = Get-WindowsCapability -Online | Where-Object {$_.Name -eq $RSATTool}
 
     if ($capability.State -ne "Installed") {
-        # If not installed, install RSAT capability
         Add-WindowsCapability -Online -Name "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0"
-        Write-Host "Capability installed successfully. Launching AD Object Mover Applet" -ForegroundColor Green
     }
 
     $computerName = $env:COMPUTERNAME
