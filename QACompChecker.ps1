@@ -1,4 +1,4 @@
-#Compliance Checker 5.0
+#Compliance Checker 5.1
 #CompChecker.ps1
 #Author: James Romeo Gaspar
 #OG: Version 1.0 | 5.26.2023
