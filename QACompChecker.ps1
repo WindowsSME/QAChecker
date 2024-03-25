@@ -6,7 +6,7 @@
 #Revision: 3.0 | 6.6.2023 : Added GlobalProtect; Logfile set to hostname; Code optimization
 #Revision: 4.0 | 6.8.2023 : Added TPM check; Non-autorized accounts check; OS Version and Build check; Unused partition Check; Bios password status check, Wifi-Adapter status check, Installed OS Check, Added Device UDID check, Added Serial Number check
 #Revision: 5.0 | 7.17.2023 : Added Manufacturer check, re-arranged BIOS query timing
-#Revision: 6.0 | 3.25.2024 : Added additional fallback for Google Chrome check; added extraction of Computer OU
+#Revision: 6.0 | 3.25.2024 : Added additional fallback for Google Chrome check
 
 $ErrorActionPreference = "SilentlyContinue"
 Import-Module -Name Microsoft.PowerShell.Utility
@@ -18,49 +18,6 @@ function Get-BitLockerEncryptionStatus {
 
     Add-EntryToFile $output
     $output
-}
-
-function Get-ComputerOUInfo {
-    [CmdletBinding()]
-    param()
-
-    $RSATTool = "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0"
-    $capability = Get-WindowsCapability -Online | Where-Object {$_.Name -eq $RSATTool}
-
-    if ($capability.State -ne "Installed") {
-        Add-WindowsCapability -Online -Name "Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0"
-    }
-
-    $computerName = $env:COMPUTERNAME
-
-    if (-not $computerName) {
-        try {
-            $computerName = [System.Net.Dns]::GetHostName()
-        } catch {
-            return
-        }
-    }
-
-    if (-not $computerName) {
-        try {
-            $computerName = (Get-WmiObject Win32_ComputerSystem).Name
-        } catch {
-            return
-        }
-    }
-    if (-not $computerName) {
-        return
-    }
-
-    try {
-        $adComputer = Get-ADComputer -Identity $computerName -Properties DistinguishedName, Modified -ErrorAction Stop
-        $distinguishedName = $adComputer.DistinguishedName
-        $organizationalUnit = ($distinguishedName -split ",", 2)[1]
-        $dateModified = $adComputer.Modified
-        Write-Output "AD OU: $organizationalUnit | Modified: $dateModified"        
-    } catch {
-        Write-Error "Error: $_"
-    }
 }
 
 function Get-WindowsUpdateStatus {
@@ -473,7 +430,6 @@ function Add-EntryToFile {
 function Run-ScriptWithProgressBar {
     $functions = @(
         "Get-Hostname",
-        "Get-ComputerOUInfo",
         "Get-SerialNumber",
         "Get-BitLockerEncryptionStatus",
         "Get-TPMStatus",
