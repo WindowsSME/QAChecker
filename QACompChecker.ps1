@@ -6,6 +6,7 @@
 #Revision: 3.0 | 6.6.2023 : Added GlobalProtect; Logfile set to hostname; Code optimization
 #Revision: 4.0 | 6.8.2023 : Added TPM check; Non-autorized accounts check; OS Version and Build check; Unused partition Check; Bios password status check, Wifi-Adapter status check, Installed OS Check, Added Device UDID check, Added Serial Number check
 #Revision: 5.0 | 7.17.2023 : Added Manufacturer check, re-arranged BIOS query timing
+#Revision: 5.1 | 3.25.2024 : Added additional fallback for Google Chrome check; added extraction of Computer OU
 
 $ErrorActionPreference = "SilentlyContinue"
 Import-Module -Name Microsoft.PowerShell.Utility
@@ -17,6 +18,41 @@ function Get-BitLockerEncryptionStatus {
 
     Add-EntryToFile $output
     $output
+}
+
+function Get-ComputerOUInfo {
+    [CmdletBinding()]
+    param()
+
+    $computerName = $env:COMPUTERNAME
+
+    if (-not $computerName) {
+        try {
+            $computerName = [System.Net.Dns]::GetHostName()
+        } catch {
+            return
+        }
+    }
+
+    if (-not $computerName) {
+        try {
+            $computerName = (Get-WmiObject Win32_ComputerSystem).Name
+        } catch {
+            return
+        }
+    }
+    if (-not $computerName) {
+        return
+    }
+
+    try {
+        $adComputer = Get-ADComputer -Identity $computerName -Properties DistinguishedName -ErrorAction Stop
+        $distinguishedName = $adComputer.DistinguishedName
+        $organizationalUnit = ($distinguishedName -split ",", 2)[1]
+        Write-Output "Organizational Unit: $organizationalUnit"
+    } catch {
+        Write-Error "Error: $_"
+    }
 }
 
 function Get-WindowsUpdateStatus {
@@ -97,7 +133,6 @@ function Get-CortexXDRInfo {
     Get-SoftwareInfo -registryPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -wmiClass 'Win32_Product' -softwareName 'Cortex XDR' -serviceName 'cyserver'
 }
 
-
 function Get-GoogleChromeInfo {
     $chromeRegKey = "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
     $chromeRegEntry = Get-ItemProperty $chromeRegKey | Where-Object { $_.DisplayName -like "*Google Chrome*" }
@@ -111,7 +146,13 @@ function Get-GoogleChromeInfo {
             $cimResult = Get-CimInstance -Query $cimQuery -ErrorAction SilentlyContinue
 
             if ($cimResult -eq $null) {
-                $output = "Google Chrome: Not Installed."
+                $chromeExePath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+                if (Test-Path $chromeExePath) {
+                    $chromeVersion = (Get-Command $chromeExePath).FileVersionInfo.FileVersion
+                    $output = "Google Chrome version: $chromeVersion"
+                } else {
+                    $output = "Google Chrome: Not Installed."
+                }
             } else {
                 $chromeVersion = $cimResult.Version
                 $output = "Google Chrome version: $chromeVersion"
@@ -128,7 +169,6 @@ function Get-GoogleChromeInfo {
     Add-EntryToFile $output
     $output
 }
-
 
 function Get-WorkspaceOneInfo {
     $workspaceOneVersion = (Get-WmiObject -Class Win32_Product | where {$_.Name -like 'Workspace*'} | where {$_.Name -eq 'Workspace ONE Intelligent Hub Installer'}).Version
@@ -425,6 +465,7 @@ function Add-EntryToFile {
 function Run-ScriptWithProgressBar {
     $functions = @(
         "Get-Hostname",
+        "Get-ComputerOUInfo",
         "Get-SerialNumber",
         "Get-BitLockerEncryptionStatus",
         "Get-TPMStatus",
